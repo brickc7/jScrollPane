@@ -1,5 +1,5 @@
 /*!
- * jScrollPane - v2.0.22 - 2015-04-25
+ * jScrollPane - v2.0.23 - 2016-01-28
  * http://jscrollpane.kelvinluck.com/
  *
  * Copyright (c) 2014 Kelvin Luck
@@ -8,7 +8,7 @@
 
 // Script: jScrollPane - cross browser customisable scrollbars
 //
-// *Version: 2.0.22, Last updated: 2015-04-25*
+// *Version: 2.0.23, Last updated: 2016-01-28*
 //
 // Project Home - http://jscrollpane.kelvinluck.com/
 // GitHub       - http://github.com/vitch/jScrollPane
@@ -39,6 +39,7 @@
 //
 // About: Release History
 //
+// 2.0.23 - (2016-01-28) Various 
 // 2.0.22 - (2015-04-25) Resolve a memory leak due to an event handler that isn't cleaned up in destroy (thanks @timjnh)
 // 2.0.21 - (2015-02-24) Simplify UMD pattern: fixes browserify when loading jQuery outside of bundle
 // 2.0.20 - (2014-10-23) Adds AMD support (thanks @carlosrberto) and support for overflow-x/overflow-y (thanks @darimpulso)
@@ -705,15 +706,33 @@
 					destY = dragMaxY;
 				}
 
+				// allow for devs to prevent the JSP from being scrolled
+				var willScrollYEvent = new $.Event("jsp-will-scroll-y");
+				elem.trigger(willScrollYEvent, [destY]);
+
+				if (willScrollYEvent.isDefaultPrevented()) {
+					return;
+				}
+
+				var tmpVerticalDragPosition = destY || 0;
+
+				var isAtTop = tmpVerticalDragPosition === 0,
+					isAtBottom = tmpVerticalDragPosition == dragMaxY,
+					percentScrolled = destY/ dragMaxY,
+					destTop = -percentScrolled * (contentHeight - paneHeight);
+
 				// can't just check if(animate) because false is a valid value that could be passed in...
 				if (animate === undefined) {
 					animate = settings.animateScroll;
 				}
 				if (animate) {
-					jsp.animate(verticalDrag, 'top', destY,	_positionDragY);
+					jsp.animate(verticalDrag, 'top', destY,	_positionDragY, function() {
+						elem.trigger('jsp-user-scroll-y', [-destTop, isAtTop, isAtBottom]);
+					});
 				} else {
 					verticalDrag.css('top', destY);
 					_positionDragY(destY);
+					elem.trigger('jsp-user-scroll-y', [-destTop, isAtTop, isAtBottom]);
 				}
 
 			}
@@ -754,14 +773,33 @@
 					destX = dragMaxX;
 				}
 
+
+				// allow for devs to prevent the JSP from being scrolled
+				var willScrollXEvent = new $.Event("jsp-will-scroll-x");
+				elem.trigger(willScrollXEvent, [destX]);
+
+				if (willScrollXEvent.isDefaultPrevented()) {
+					return;
+				}
+
+				var tmpHorizontalDragPosition = destX ||0;
+
+				var isAtLeft = tmpHorizontalDragPosition === 0,
+					isAtRight = tmpHorizontalDragPosition == dragMaxX,
+					percentScrolled = destX / dragMaxX,
+					destLeft = -percentScrolled * (contentWidth - paneWidth);
+
 				if (animate === undefined) {
 					animate = settings.animateScroll;
 				}
 				if (animate) {
-					jsp.animate(horizontalDrag, 'left', destX,	_positionDragX);
+					jsp.animate(horizontalDrag, 'left', destX,	_positionDragX, function() {
+						elem.trigger('jsp-user-scroll-x', [-destLeft, isAtLeft, isAtRight]);
+					});
 				} else {
 					horizontalDrag.css('left', destX);
 					_positionDragX(destX);
+					elem.trigger('jsp-user-scroll-x', [-destLeft, isAtLeft, isAtRight]);
 				}
 			}
 
@@ -1099,7 +1137,7 @@
 				$(document.body).data('jspHijack', true);
 
 				// use live handler to also capture newly created links
-				$(document.body).delegate('a[href*=#]', 'click', function(event) {
+				$(document.body).delegate('a[href*="#"]', 'click', function(event) {
 					// does the link point to the same page?
 					// this also takes care of cases with a <base>-Tag or Links not starting with the hash #
 					// e.g. <a href="index.html#test"> when the current url already is index.html
@@ -1334,8 +1372,9 @@
 					//  * prop         - the property that is being animated
 					//  * value        - the value it's being animated to
 					//  * stepCallback - a function that you must execute each time you update the value of the property
+					//  * completeCallback - a function that will be executed after the animation had finished
 					// You can use the default implementation (below) as a starting point for your own implementation.
-					animate: function(ele, prop, value, stepCallback)
+					animate: function(ele, prop, value, stepCallback, completeCallback)
 					{
 						var params = {};
 						params[prop] = value;
@@ -1345,7 +1384,8 @@
 								'duration'	: settings.animateDuration,
 								'easing'	: settings.animateEase,
 								'queue'		: false,
-								'step'		: stepCallback
+								'step'		: stepCallback,
+								'complete'	: completeCallback
 							}
 						);
 					},
