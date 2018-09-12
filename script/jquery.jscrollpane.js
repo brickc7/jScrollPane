@@ -148,8 +148,8 @@
 					);
 					// TODO: Deal with where width/ height is 0 as it probably means the element is hidden and we should
 					// come back to it later and check once it is unhidden...
-					paneWidth = elem.innerWidth() + originalPaddingTotalWidth;
-					paneHeight = elem.innerHeight();
+					paneWidth = Math.round(elem.innerWidth() + originalPaddingTotalWidth) | 0;
+					paneHeight = Math.round(elem.innerHeight()) | 0;
 
 					elem.width(paneWidth);
 
@@ -183,8 +183,8 @@
 					container.css({width: 'auto', height: 'auto'});
 					pane.css('position', 'static');
 
-					newPaneWidth = elem.innerWidth() + originalPaddingTotalWidth;
-					newPaneHeight = elem.innerHeight();
+					newPaneWidth = Math.round(elem.innerWidth() + originalPaddingTotalWidth) | 0;
+					newPaneHeight = Math.round(elem.innerHeight()) | 0;
 					pane.css('position', 'absolute');
 
 					maintainAtBottom = settings.stickToBottom && isCloseToBottom();
@@ -560,7 +560,7 @@
 							return false;
 						}
 					);
-					horizontalTrackWidth = container.innerWidth();
+					horizontalTrackWidth = Math.round(container.innerWidth()) | 0;
 					sizeHorizontalScrollbar();
 				}
 			}
